@@ -48,6 +48,9 @@ yarn-error.log*
 # Next.js telemetry
 .next/
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # IDE configurations
 .vscode/
 .idea/
