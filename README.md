@@ -124,3 +124,63 @@ To deploy this platform onto a cloud VPS using EasyPanel:
 4. Define the necessary environmental links (e.g. `DATABASE_URL`, `REDIS_URL`, `QDRANT_URL`, and `NEXT_PUBLIC_API_URL`).
 
 Refer to the complete, step-by-step **[EasyPanel Deployment Guide](docs/easypanel.md)** for further instructions on scaling, volume attachments, and custom routing setups.
+
+---
+
+## Projects Module (Stage 2)
+
+The **Projects Module** enables multi-tenant project workspace registry, status trackers, and stack metadata mapping.
+
+### Directory Structure
+
+```text
+backend/app/modules/projects/
+├── models/
+│   └── project.py             # SQLAlchemy 2.0 Database model with VARCHAR mapped Enums
+├── schemas/
+│   └── project.py             # Pydantic schema validation wrappers
+├── repositories/
+│   └── project_repository.py  # SQLAlchemy async transaction queries
+├── services/
+│   └── project_service.py     # Unique validation & archiving business logic
+└── routes/
+    └── project_routes.py      # REST APIs (GET, POST, PUT, PATCH, DELETE)
+```
+
+### Database Schema (projects table)
+
+- `id` (INTEGER, Primary Key, autoincrement)
+- `uuid` (UUID, Unique, Default uuid4)
+- `name` (VARCHAR(150), Non-nullable)
+- `slug` (VARCHAR(150), Unique, Non-nullable)
+- `description` (TEXT, Nullable, max 5000 chars)
+- `status` (VARCHAR(50), Default 'IDEA')
+- `priority` (VARCHAR(50), Default 'MEDIUM')
+- `project_type` (VARCHAR(50), Non-nullable)
+- `stack` (JSONB list of strings)
+- `github_url` (VARCHAR(255), Nullable)
+- `production_url` (VARCHAR(255), Nullable)
+- `is_archived` (BOOLEAN, Default False)
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
+
+### API Endpoints
+
+- **`POST /api/projects`**: Create new workspace project.
+- **`GET /api/projects`**: List and filter projects (with query params: `?status=`, `?priority=`, `?project_type=`, `?search=`, `?page=`, `?limit=`).
+- **`GET /api/projects/{id}`**: Get project details by ID.
+- **`GET /api/projects/slug/{slug}`**: Get project by unique URL slug.
+- **`PUT /api/projects/{id}`**: Update project details.
+- **`PATCH /api/projects/{id}/archive`**: Soft-archive project.
+- **`DELETE /api/projects/{id}`**: Soft-delete project.
+
+### Database Seeds
+
+Initial mock projects added:
+- **Flux Limp** (slug: `flux-limp`, status: `DEVELOPMENT`, priority: `HIGH`, type: `SAAS`)
+- **Flux Guard** (slug: `flux-guard`, status: `PLANNING`, priority: `CRITICAL`, type: `AUTOMATION`)
+- **Consigo** (slug: `consigo`, status: `TESTING`, priority: `MEDIUM`, type: `MOBILE_APP`)
+- **ZapScore** (slug: `zapscore`, status: `PUBLISHED`, priority: `HIGH`, type: `API`)
+- **Job Pilot AI** (slug: `job-pilot-ai`, status: `DEVELOPMENT`, priority: `HIGH`, type: `AGENT`)
+- **Agente Idiomas** (slug: `agente-idiomas`, status: `IDEA`, priority: `LOW`, type: `AGENT`)
+

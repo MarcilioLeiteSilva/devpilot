@@ -1,20 +1,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { 
   FolderGit2, 
   CheckSquare, 
   Cpu, 
   Database, 
   Activity, 
-  RefreshCw,
-  Server,
-  ArrowUpRight,
-  Sparkles,
-  Link2,
-  AlertCircle,
-  CheckCircle2
+  RefreshCw, 
+  Server, 
+  ArrowUpRight, 
+  Sparkles, 
+  Link2, 
+  AlertCircle, 
+  CheckCircle2 
 } from "lucide-react";
+import { getProjects } from "@/services/projectsApi";
 
 interface HealthData {
   app: string;
@@ -31,7 +33,15 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
-  const fetchHealth = async () => {
+  // Projects stats state
+  const [projectStats, setProjectStats] = useState({
+    total: 0,
+    development: 0,
+    published: 0,
+    archived: 0
+  });
+
+  const fetchHealthAndStats = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -47,6 +57,26 @@ export default function Dashboard() {
       const data = await response.json();
       setHealth(data);
       setLastUpdated(new Date().toLocaleTimeString());
+
+      // Fetch projects to compute metrics
+      try {
+        const projectsData = await getProjects({ limit: 100, include_archived: true });
+        const items = projectsData.items;
+        const total = items.filter(p => !p.is_archived).length;
+        const development = items.filter(p => p.status === "DEVELOPMENT" && !p.is_archived).length;
+        const published = items.filter(p => p.status === "PUBLISHED" && !p.is_archived).length;
+        const archived = items.filter(p => p.is_archived || p.status === "ARCHIVED").length;
+        
+        setProjectStats({
+          total,
+          development,
+          published,
+          archived
+        });
+      } catch (projErr) {
+        console.error("Failed to fetch project stats:", projErr);
+      }
+
     } catch (err: any) {
       console.error("Failed to fetch backend health status:", err);
       setError("Backend unreachable. Please verify if the API server is running.");
@@ -56,45 +86,44 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchHealth();
+    fetchHealthAndStats();
     // Auto-refresh every 15 seconds
-    const interval = setInterval(fetchHealth, 15000);
+    const interval = setInterval(fetchHealthAndStats, 15000);
     return () => clearInterval(interval);
   }, []);
 
-  // Mock numbers for Stage 1 UI
   const metrics = [
     {
-      title: "Projects",
-      value: "0",
+      title: "Total Projects",
+      value: projectStats.total.toString(),
       description: "Active development workspaces",
       icon: FolderGit2,
       color: "from-blue-500/20 to-indigo-500/20 border-blue-500/30 text-blue-400",
       glow: "group-hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
     },
     {
-      title: "Tasks",
-      value: "0",
-      description: "Total agent task pipeline",
-      icon: CheckSquare,
+      title: "In Development",
+      value: projectStats.development.toString(),
+      description: "Active programming phase",
+      icon: Cpu,
       color: "from-cyan-500/20 to-teal-500/20 border-cyan-500/30 text-cyan-400",
       glow: "group-hover:shadow-[0_0_20px_rgba(6,182,212,0.15)]"
     },
     {
-      title: "Agents",
-      value: "0",
-      description: "AI assistants deployed",
-      icon: Cpu,
-      color: "from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-400",
-      glow: "group-hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]"
-    },
-    {
-      title: "Memory",
-      value: "0",
-      description: "Vector database embeddings",
-      icon: Database,
+      title: "Published",
+      value: projectStats.published.toString(),
+      description: "Live production platforms",
+      icon: CheckSquare,
       color: "from-emerald-500/20 to-green-500/20 border-emerald-500/30 text-emerald-400",
       glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+    },
+    {
+      title: "Archived Projects",
+      value: projectStats.archived.toString(),
+      description: "Soft deleted or paused spaces",
+      icon: Database,
+      color: "from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-400",
+      glow: "group-hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]"
     }
   ];
 
@@ -133,9 +162,19 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold">
+            <Link href="/dashboard" className="text-white border-b-2 border-blue-500 pb-1 font-bold transition">
+              Dashboard
+            </Link>
+            <Link href="/projects" className="text-slate-400 hover:text-white transition">
+              Projects
+            </Link>
+          </nav>
+
           <div className="flex items-center gap-4">
             <button 
-              onClick={fetchHealth}
+              onClick={fetchHealthAndStats}
               disabled={loading}
               className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/5 hover:border-white/10 transition duration-200 active:scale-95 disabled:opacity-50"
             >
@@ -168,14 +207,12 @@ export default function Dashboard() {
           </div>
           
           <div className="relative z-10 flex gap-3 self-stretch md:self-auto flex-wrap sm:flex-nowrap">
-            <a 
-              href="http://localhost:8000/docs" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <Link 
+              href="/projects" 
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-semibold px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)] transition duration-200 hover:-translate-y-0.5"
             >
-              Open API Docs <ArrowUpRight className="w-3.5 h-3.5" />
-            </a>
+              Explore Projects <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
           <div className="absolute right-0 top-0 w-80 h-full bg-gradient-to-l from-blue-500/5 to-transparent pointer-events-none" />
         </section>
@@ -288,7 +325,7 @@ export default function Dashboard() {
                 API gateway connectivity: {health?.api === "ok" ? "ACTIVE" : "PENDING"}
               </span>
               <button 
-                onClick={fetchHealth} 
+                onClick={fetchHealthAndStats} 
                 className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center justify-center gap-1.5 py-1 px-3 rounded hover:bg-blue-500/5 transition self-end sm:self-auto"
               >
                 <RefreshCw className="w-3 h-3" /> Refresh Diagnostics

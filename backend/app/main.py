@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.health import router as health_router
+from app.modules.projects.routes.project_routes import router as projects_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -20,3 +21,7 @@ app.add_middleware(
 
 # Mount health & status routes
 app.include_router(health_router)
+
+# Mount projects module routes
+app.include_router(projects_router)
+
